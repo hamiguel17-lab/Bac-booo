@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberKey - Master Control</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#ff0000">
+    <link rel="apple-touch-icon" href="icon.png">
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+
+        :root {
+            --primary: #ff0000;
+            --accent: #00ff9d;
+            --info: #00e1ff;
+            --bg-dark: #000000;
+            --card-bg: #0a0a0a;
+            --border-color: #333;
+        }
+
+        body { background-color: var(--bg-dark); color: white; font-family: 'Orbitron', sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
+        
+        .navbar { display: flex; width: 100%; max-width: 600px; gap: 4px; margin-bottom: 20px; flex-wrap: wrap; }
+        .nav-btn { flex: 1; min-width: 75px; padding: 12px 2px; background: transparent; border: 1px solid var(--border-color); color: #fff; font-size: 8px; cursor: pointer; text-transform: uppercase; }
+        .nav-btn.active { border: 1px solid var(--primary); background: linear-gradient(to bottom, #500, #ff0000); box-shadow: 0 0 15px var(--primary); }
+
+        .container { width: 100%; max-width: 600px; }
+        .main-card { border: 1px solid #300; padding: 20px; background: var(--card-bg); text-align: center; margin-bottom: 15px; }
+        
+        /* Dashboard */
+        .balance-value { font-size: 35px; margin: 15px 0; text-shadow: 0 0 10px var(--primary); font-weight: bold; }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .stat-item { border: 1px solid #222; padding: 12px; background: #0d0d0d; font-size: 8px; text-transform: uppercase; color: #888; }
+        .stat-val { font-size: 16px; display: block; margin-top: 5px; font-weight: bold; }
+
+        input, select { background: #000; border: 1px solid #444; color: white; padding: 12px; margin: 8px 0; width: 100%; box-sizing: border-box; font-family: 'Orbitron'; font-size: 10px;}
+        .action-btn { background: var(--primary); border: none; color: black; font-weight: bold; padding: 15px; cursor: pointer; width: 100%; margin-top: 10px; font-size: 10px; text-transform: uppercase;}
+
+        .admin-account-card { border: 1px solid #222; border-left: 3px solid var(--primary); padding: 15px; margin-top: 15px; text-align: left; background: #050505; }
+        .admin-header { display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 10px; border-bottom: 1px solid #222; padding-bottom: 5px; }
+        .user-val { color: var(--primary); font-weight: bold; }
+        .pass-val { color: orange; }
+        
+        .cr-row { display: flex; gap: 5px; margin-top: 10px; }
+        .cr-input { flex: 1; padding: 10px; background: #000; border: 1px solid #444; color: #0f0; font-family: 'Orbitron'; font-size: 10px; }
+        .btn-cr-add { background: transparent; border: 1px solid var(--accent); color: var(--accent); padding: 10px; font-size: 8px; cursor: pointer; }
+        .btn-cr-rem { background: transparent; border: 1px solid var(--primary); color: var(--primary); padding: 10px; font-size: 8px; cursor: pointer; }
+        .btn-del-user { width: 100%; margin-top: 10px; background: #200; border: 1px solid #f00; color: white; padding: 8px; font-size: 8px; cursor: pointer; }
+
+        .key-card { background: #050505; border: 1px solid #1a1a1a; border-left: 3px solid var(--primary); padding: 15px; margin-bottom: 10px; text-align: left; }
+        .btn-k { background: transparent; border: 1px solid #444; color: white; font-size: 7px; padding: 8px 0; cursor: pointer; }
+        .btn-copy-full { width: 100%; margin-top: 5px; background: transparent; border: 1px solid var(--info); color: var(--info); font-size: 8px; padding: 6px; cursor: pointer; }
+        .btn-del-key { width: 100%; margin-top: 5px; background: #300; border: 1px solid #f00; color: white; font-size: 8px; padding: 6px; cursor: pointer; text-transform: uppercase; }
+
+        .tab-content { display: none; }
+        .active-tab { display: block; }
+    </style>
+</head>
+<body onload="init()">
+
+    <div class="navbar" id="nav-bar" style="display: none;">
+        <button class="nav-btn active" onclick="showTab('dash', this)">DASH</button>
+        <button class="nav-btn" onclick="showTab('gerar', this)">GERAR</button>
+        <button class="nav-btn" onclick="showTab('banco', this)">BANCO</button>
+        <button class="nav-btn admin-only" onclick="showTab('contas', this)">CONTAS</button>
+        <button class="nav-btn admin-only" onclick="showTab('pedidos', this)">PEDIDOS</button>
+        <button class="nav-btn" onclick="showTab('info', this)">INFO</button>
+    </div>
+
+    <div id="auth-screen" class="container" style="margin-top: 50px;">
+        <div class="main-card">
+            <h3>CYBER LOGIN</h3>
+            <input type="text" id="user-input" placeholder="USUÁRIO">
+            <input type="password" id="pass-input" placeholder="SENHA">
+            <button class="action-btn" onclick="login()">ENTRAR</button>
+            <button class="action-btn" style="background: #111; color: #555;" onclick="login(true)">SOLICITAR ACESSO</button>
+        </div>
+    </div>
+
+    <div id="main-content" class="container" style="display: none;">
+        <div id="dash" class="tab-content active-tab">
+            <div class="main-card">
+                <div style="font-size: 10px; color: #888;">SALDO ATUAL</div>
+                <div class="balance-value" id="user-saldo">0</div>
+                <div class="stats-grid">
+                    <div class="stat-item">ATIVAS <span class="stat-val" id="count-ativas" style="color: var(--accent);">0</span></div>
+                    <div class="stat-item">PAUSADAS <span class="stat-val" id="count-pausadas" style="color: var(--info);">0</span></div>
+                    <div class="stat-item">WAIT <span class="stat-val" style="color: #ffff00;">0</span></div>
+                    <div class="stat-item">BANIDAS <span class="stat-val" id="count-ban" style="color: var(--primary);">0</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="gerar" class="tab-content">
+            <div class="main-card">
+                <h3 style="font-size: 11px;">GERAR ACESSO BAC</h3>
+                <input type="text" id="custom-key-name" placeholder="NOME DA KEY (OPCIONAL)">
+                <select id="key-time-select"></select>
+                <button class="action-btn" onclick="generateKey()">GERAR KEY AGORA</button>
+            </div>
+        </div>
+
+        <div id="banco" class="tab-content">
+            <div id="key-list-container"></div>
+        </div>
+
+        <div id="contas" class="tab-content">
+            <div class="main-card">
+                <h3 style="font-size: 11px;">GERENCIAR REVENDEDORES</h3>
+                <div id="admin-user-list"></div>
+            </div>
+        </div>
+
+        <div id="pedidos" class="tab-content">
+            <div class="main-card"><div id="requests-list"></div></div>
+        </div>
+
+        <div id="info" class="tab-content">
+            <div class="main-card">
+                <input type="password" id="secret-input" placeholder="SENHA MESTRE" style="text-align: center;">
+                <button class="action-btn" onclick="checkSecret()">REPOR 1.000.000 (DONO)</button>
+                <button class="action-btn" style="background:#111; color:white;" onclick="logout()">DESCONECTAR</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // LÓGICA DO BANCO DE DADOS E FUNÇÕES
+        let db = JSON.parse(localStorage.getItem('cyberDB')) || {
+            users: { "DONO": { pass: "110211", saldo: 989400, keys: [] } },
+            requests: []
+        };
+
+        function saveData() { localStorage.setItem('cyberDB', JSON.stringify(db)); }
+        let currentUser = null;
+
+        const ts = document.getElementById('key-time-select');
+        for (let i = 1; i <= 30; i++) {
+            let o = document.createElement('option'); o.value = i;
+            o.innerHTML = i + (i === 1 ? " DIA" : " DIAS"); ts.appendChild(o);
+        }
+
+        function login(isRequest = false) {
+            const u = document.getElementById('user-input').value;
+            const p = document.getElementById('pass-input').value;
+            if(!u || !p) return;
+            if(isRequest) { db.requests.push({u, p}); saveData(); alert("Solicitado!"); return; }
+            if(db.users[u] && db.users[u].pass === p) {
+                currentUser = u;
+                document.getElementById('auth-screen').style.display = 'none';
+                document.getElementById('nav-bar').style.display = 'flex';
+                document.getElementById('main-content').style.display = 'block';
+                document.querySelectorAll('.admin-only').forEach(e => e.style.display = (u === "DONO" ? "block" : "none"));
+                updateDash();
+            }
+        }
+
+        function logout() { location.reload(); }
+
+        function showTab(id, btn) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active-tab'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(id).classList.add('active-tab');
+            btn.classList.add('active');
+            if(id === 'banco') renderKeys();
+            if(id === 'contas') renderAdminUsers();
+            if(id === 'pedidos') renderRequests();
+        }
+
+        function renderAdminUsers() {
+            const list = document.getElementById('admin-user-list');
+            list.innerHTML = "";
+            for(let u in db.users) {
+                if(u === "DONO") continue;
+                list.innerHTML += `
+                <div class="admin-account-card">
+                    <div class="admin-header">
+                        <span>USUÁRIO: <span class="user-val">${u}</span></span>
+                        <span>SENHA: <span class="pass-val">${db.users[u].pass}</span></span>
+                    </div>
+                    <div style="font-size:10px;">SALDO ATUAL: <b style="color:#0f0">${db.users[u].saldo.toLocaleString()} CR</b></div>
+                    <div class="cr-row">
+                        <input type="number" id="cr-val-${u}" class="cr-input" placeholder="QTD">
+                        <button class="btn-cr-add" onclick="updateUserCR('${u}', 'add')">ADICIONAR</button>
+                        <button class="btn-cr-rem" onclick="updateUserCR('${u}', 'rem')">RETIRAR</button>
+                    </div>
+                    <button class="btn-del-user" onclick="delUser('${u}')">EXCLUIR CONTA</button>
+                </div>`;
+            }
+        }
+
+        function updateUserCR(userName, type) {
+            const valInput = document.getElementById(`cr-val-${userName}`);
+            const amount = parseInt(valInput.value);
+            if(isNaN(amount) || amount <= 0) return alert("Digite um valor válido!");
+            if(type === 'add') { db.users[userName].saldo += amount; } 
+            else { if(db.users[userName].saldo < amount) return alert("Saldo insuficiente!"); db.users[userName].saldo -= amount; }
+            saveData(); renderAdminUsers(); alert("Saldo atualizado!");
+        }
+
+        function delUser(u) { if(confirm("Deseja deletar "+u+"?")){ delete db.users[u]; saveData(); renderAdminUsers(); } }
+
+        function generateKey() {
+            const custom = document.getElementById('custom-key-name').value.trim();
+            const days = parseInt(ts.value);
+            const cost = days * 10;
+            if(db.users[currentUser].saldo < cost) return alert("Saldo insuficiente!");
+            let keyName = custom || "BAC-" + Math.floor(1000 + Math.random() * 9000);
+            db.users[currentUser].keys.push({ code: keyName, days: days, status: 'Ativa', ip: '1' });
+            db.users[currentUser].saldo -= cost;
+            saveData(); updateDash(); alert("Gerada!");
+        }
+
+        function renderKeys() {
+            const container = document.getElementById('key-list-container');
+            container.innerHTML = "";
+            db.users[currentUser].keys.forEach((k, i) => {
+                const statusColor = k.status === 'Banida' ? 'red' : (k.status === 'Pausada' ? 'orange' : '#0f0');
+                container.innerHTML += `
+                <div class="key-card">
+                    <div style="display:flex; justify-content:space-between; font-size:10px; margin-bottom:10px;">
+                        <b>${k.code}</b> <span>${k.days}D</span>
+                    </div>
+                    <div style="text-align:center; color:${statusColor}; font-size:9px; margin-bottom:10px;">${k.status.toUpperCase()}</div>
+                    <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:5px;">
+                        <button class="btn-k" onclick="modK(${i}, 'Pausada')">PAUSE</button>
+                        <button class="btn-k" style="border-color:#0f0; color:#0f0;" onclick="modK(${i}, 'Ativa')">PLAY</button>
+                        <button class="btn-k" onclick="addK(${i})">+D</button>
+                        <button class="btn-k" style="border-color:red; color:red;" onclick="modK(${i}, 'Banida')">BAN</button>
+                    </div>
+                    <button class="btn-copy-full" onclick="copyK('${k.code}')">COPIAR KEY</button>
+                    ${k.status === 'Banida' ? `<button class="btn-del-key" onclick="deleteKey(${i})">APAGAR DEFINITIVAMENTE</button>` : ''}
+                </div>`;
+            });
+        }
+
+        function modK(i, s) { db.users[currentUser].keys[i].status = s; saveData(); renderKeys(); updateDash(); }
+        function deleteKey(i) { if(confirm("Apagar para sempre?")) { db.users[currentUser].keys.splice(i, 1); saveData(); renderKeys(); updateDash(); } }
+        function addK(i) { if(db.users[currentUser].saldo >= 10){ db.users[currentUser].saldo -= 10; db.users[currentUser].keys[i].days++; saveData(); renderKeys(); updateDash(); } }
+        function copyK(t) { navigator.clipboard.writeText(t).then(() => alert("Copiado!")); }
+
+        function renderRequests() {
+            const b = document.getElementById('requests-list'); b.innerHTML = "";
+            db.requests.forEach((r, i) => {
+                b.innerHTML += `<div class="main-card">USER: ${r.u} <br> <button onclick="acceptReq(${i})">ACEITAR</button> <button onclick="rejectReq(${i})">RECUSAR</button></div>`;
+            });
+        }
+
+        function acceptReq(i) { const r = db.requests[i]; db.users[r.u] = { pass: r.p, saldo: 0, keys: [] }; db.requests.splice(i, 1); saveData(); renderRequests(); }
+        function rejectReq(i) { db.requests.splice(i, 1); saveData(); renderRequests(); }
+
+        function checkSecret() {
+            if(document.getElementById('secret-input').value === "244") {
+                db.users[currentUser].saldo = 1000000; saveData(); updateDash(); alert("Injetado!"); document.getElementById('secret-input').value = "";
+            } else { alert("Erro!"); }
+        }
+
+        function updateDash() {
+            const u = db.users[currentUser];
+            document.getElementById('user-saldo').innerText = u.saldo.toLocaleString();
+            document.getElementById('count-ativas').innerText = u.keys.filter(k => k.status === 'Ativa').length;
+            document.getElementById('count-pausadas').innerText = u.keys.filter(k => k.status === 'Pausada').length;
+            document.getElementById('count-ban').innerText = u.keys.filter(k => k.status === 'Banida').length;
+        }
+
+        function init() {
+            console.log("CyberKey System Initialized");
+        }
+    </script>
+
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js')
+            .then(() => console.log("Service Worker: Ativo"))
+            .catch(err => console.log("Service Worker: Erro", err));
+        });
+      }
+    </script>
+</body>
+</html>
